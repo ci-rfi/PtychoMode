@@ -26,7 +26,7 @@ class PtychoMode():
         self.scan = TEM3.Scan3()
 
         self.calibration = calibration
-        self.zero_focus = 0 # nm
+        self.zero_defocus = 0 # nm
         self.defocus = 0 # nm
 
     def std_focus(self):
@@ -55,14 +55,14 @@ class PtychoMode():
         defocus_per_bit = 4.520
         self.eos.SetObjFocus(int(defocus/defocus_per_bit))
 
-    # aquisition_focus - std_focus = defocus + zero_focus
-    # aquisition_focus                zero_focus       std_focus 
-    #        |<-------------------------->|----------------|
-    #                    defocus                               
+    # aquisition_focus - std_focus = defocus + zero_defocus
+    # aquisition_focus                                  std_focus 
+    #        |<-------------------------->|<-------------->|
+    #                    defocus             zero_defocus
     def set_acquisition_focus__nm(self, defocus):
         self.defocus = defocus
         self.std_focus()
-        self.change_defocus(defocus + self.zero_focus)
+        self.change_defocus(defocus + self.zero_defocus)
 
     def set_acquisition_focus__um(self, defocus):
         self.set_acquisition_focus__nm(self, defocus * 1000)
@@ -228,7 +228,7 @@ class PtychoMode():
             }
 
         acquisition = {
-            'zero_focus(nm)': self.zero_focus,
+            'zero_defocus(nm)': self.zero_defocus,
             'defocus(nm)': self.defocus,
             'time_stamp': datetime.datetime.now(),
             'file_dir': "",
