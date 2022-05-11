@@ -31,8 +31,10 @@ class PtychoMode():
 
     def std_focus(self):
         # TODO: Add value range check, [0, 65535]
+        # TODO: Need to be in the calibration
         self.lens.SetOLc(63270) #F726
-        self.lens.SetOLf(32774) #8006
+        #self.lens.SetOLf(32774) #8006
+        self.lens.SetOLf(38918) #9806
         self.lens.SetOLSuperFineSw(1)
         self.lens.SetOLSuperFineValue(2048) #0800
         self.lens.SetOLSuperFineSw(0)
@@ -44,6 +46,7 @@ class PtychoMode():
         else:                
             self.eos.UpSelector()
             self.eos.DownSelector()
+        sleep(1)
 
     def change_defocus(self, defocus):
         self.lens.SetOLSuperFineSw(0)
@@ -52,7 +55,9 @@ class PtychoMode():
         # At 300kV, OLf 1 bit -> 4.520 nm
             # ht = str(self.ht.GetHtValue())
             # defocus_per_bit = self.calibration['defocus_per_bit'][ht]
-        defocus_per_bit = 4.520
+        # TODO: need to be moved to calibration file        
+        # defocus_per_bit = 4.520
+        defocus_per_bit = 1.1273
         self.eos.SetObjFocus(int(defocus/defocus_per_bit))
 
     # aquisition_focus - std_focus = defocus + zero_defocus
@@ -65,14 +70,25 @@ class PtychoMode():
         self.change_defocus(defocus + self.zero_defocus)
 
     def set_acquisition_focus__um(self, defocus):
-        self.set_acquisition_focus__nm(self, defocus * 1000)
+        self.set_acquisition_focus__nm(defocus * 1000)
 
     def set_array_size(self, array_size):
         size_list = [64, 128, 256, 512, 1024, 2048, 3072, 4096]
         # Find the nearest size accepted by JOEL Scan
         difference = lambda list : abs(list - array_size)
         input_array_size = min(size_list, key=difference)
-        self.adf1.set_imaging_area(Width=array_size, Height=input_array_size)
+        current_beam_blanking = self.defl.GetBeamBlank()        
+        current_scan_mode = self.adf1.get_detectorsetting()['scanMode']
+        self.beam_blanking(0)
+        self.adf1.set_scanmode(0)
+        self.adf1.set_imaging_area(input_array_size, input_array_size, 0, 0)
+        self.adf1.set_scanmode(current_scan_mode)
+        self.beam_blanking(current_beam_blanking)
+        
+    def start_acquisition(self):
+        self.beam_blanking(0)
+        self.adf1.set_scanmode(2)
+        self.adf1.set_scanmode(0)
 
     # TODO: Merge in to params collection
     def get_cl_aperture(self):
@@ -98,7 +114,7 @@ class PtychoMode():
     def clear_detector_channels(self):
         for i in range(4):
             self.detector.assign_channel('None', i)
-            sleep(1)
+            sleep(2)
 
     def beam_blanking(self, on_off):
         self.defl.SetBeamBlank(on_off)
